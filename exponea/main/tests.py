@@ -19,27 +19,74 @@ def build_url(base_url, get_params=None):
 class TaskTestCase(SimpleTestCase):
 
     def test_missing_timeout(self):
-        response = self.client.get(reverse('all'))
+        response = self.client.get(reverse("all"))
         self.assertEqual(response.status_code, 400)
 
-    def test_timeout(self):
+    def test_first(self):
         with aioresponses() as m:
-            m.get(EXPONEA_URL, status=200, payload={'time': 500})
-            m.get(EXPONEA_URL, status=200, payload={'time': 400})
-            m.get(EXPONEA_URL, status=200, payload={'time': 300})
+            for i in range(3):
+                m.get(EXPONEA_URL, status=200, payload={"time": 300})
 
-            response = self.client.get(build_url(reverse('all'), {'timeout': 300}))
+            response = self.client.get(build_url(reverse("first"), {"timeout": 300}))
+            response_json = json.loads(response.content)
+            self.assertEqual(response_json, [{"time": 300}])
+            self.assertEqual(response.status_code, 200)
+
+    def test_all(self):
+        with aioresponses() as m:
+            m.get(EXPONEA_URL, status=200, payload={"time": 500})
+            m.get(EXPONEA_URL, status=200, payload={"time": 400})
+            m.get(EXPONEA_URL, status=200, payload={"time": 300})
+
+            response = self.client.get(build_url(reverse("all"), {"timeout": 300}))
             response_json = json.loads(response.content)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response_json, [{'time': 500}, {'time': 400}, {'time': 300}])
+            self.assertEqual(
+                sorted(response_json, key=lambda item: item["time"]), [{"time": 300}, {"time": 400}, {"time": 500}]
+            )
 
     def test_invalid_task(self):
         with aioresponses() as m:
-            m.get(EXPONEA_URL, status=200, payload={'time': 500})
-            m.get(EXPONEA_URL, status=400, payload={'time': 400})
-            m.get(EXPONEA_URL, status=200, payload={'time': 300})
-            response = self.client.get(build_url(reverse('all'), {'timeout': 300}))
+            m.get(EXPONEA_URL, status=200, payload={"time": 500})
+            m.get(EXPONEA_URL, status=400, payload={"time": 400})
+            m.get(EXPONEA_URL, status=200, payload={"time": 300})
+
+            response = self.client.get(build_url(reverse("all"), {"timeout": 300}))
             response_json = json.loads(response.content)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response_json, [{'time': 500}, {'time': 300}])
-            print(response_json)
+            self.assertEqual(sorted(response_json, key=lambda item: item["time"]), [{"time": 300}, {"time": 500}])
+
+    def test_all_invalid_tasks(self):
+        with aioresponses() as m:
+            m.get(EXPONEA_URL, status=400, payload={"time": 500})
+            m.get(EXPONEA_URL, status=400, payload={"time": 400})
+            m.get(EXPONEA_URL, status=400, payload={"time": 300})
+
+            response = self.client.get(build_url(reverse("all"), {"timeout": 300}))
+            response_json = json.loads(response.content)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response_json, {"error": "All requests were unsuccessful"})
+
+    def test_within_timeout_tasks_failed(self):
+        with aioresponses() as m:
+            m.get(EXPONEA_URL, status=400, payload={"time": 500})
+            m.get(EXPONEA_URL, status=400, payload={"time": 400})
+            m.get(EXPONEA_URL, status=400, payload={"time": 300})
+
+            response = self.client.get(build_url(reverse("within-timeout"), {"timeout": 300}))
+            response_json = json.loads(response.content)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response_json, [])
+
+    def test_within_timeout(self):
+        with aioresponses() as m:
+            m.get(EXPONEA_URL, status=200, payload={"time": 500})
+            m.get(EXPONEA_URL, status=200, payload={"time": 400})
+            m.get(EXPONEA_URL, status=200, payload={"time": 300})
+
+            response = self.client.get(build_url(reverse("all"), {"timeout": 300}))
+            response_json = json.loads(response.content)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                sorted(response_json, key=lambda item: item["time"]), [{"time": 300}, {"time": 400}, {"time": 500}]
+            )
