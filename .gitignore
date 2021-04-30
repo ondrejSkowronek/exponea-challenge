@@ -1,0 +1,6 @@
+# Python bytecode:
+*.py[co]
+.idea
+__pycache__/
+.env
+db.sqlite3
