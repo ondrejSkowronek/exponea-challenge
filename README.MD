@@ -5,7 +5,7 @@ API was made by django RESTframework. Django RESTFramework is not necessary the 
 but it makes creating API views and testing much easier to implement and Django is framework I am most familiar with.
 
 # Installation guide
-pull this repository and cd into it
-sudo docker build -t exponea_image .
-sudo docker run -p 80:80 exponea_image
-you should have app running on port 80 
+1) pull this repository and cd into it
+2) sudo docker build -t exponea_image .
+3) sudo docker run -p 80:80 exponea_image
+4) you should have app running on port 80 
